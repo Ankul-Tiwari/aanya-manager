@@ -1079,6 +1079,7 @@ function copyTag(el) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+    <!-- v2 -->
   });
 }
 </script>
