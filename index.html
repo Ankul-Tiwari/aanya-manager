@@ -1,197 +1,759 @@
-<script>
-const SYS = `Tu Aanya Nirvaah ka AI Social Media Manager hai. Aanya ek Indian virtual AI influencer hai — cute, warm, unapologetically desi North Indian girl (Delhi/Punjab vibe). Uski personality soft aur relatable hai. Tera kaam hai uske Instagram account ko grow karna.
-
-Character: Aanya Nirvaah | North India (Delhi/Punjab) | Desi lifestyle, fashion, self-love | Tools: Flow AI, Veo 3, Face Swap | Status: New account growing
-
-Response style: Practical, actionable, Hinglish (Hindi+English mix), concise aur clear.`;
-
-function getKey() { return localStorage.getItem('aanya_gemini_key') || ''; }
-
-function saveKey() {
-  const k = document.getElementById('modal-key').value.trim();
-  if (k.length < 10) { document.getElementById('key-err').style.display = 'block'; return; }
-  localStorage.setItem('aanya_gemini_key', k);
-  document.getElementById('api-modal').style.display = 'none';
-  document.getElementById('key-err').style.display = 'none';
-  updateDot();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#06030f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Aanya AI"/>
+<title>Aanya Nirvaah</title>
+<link rel="manifest" href="manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #06030f;
+  --bg2: #0d0820;
+  --card: #110d24;
+  --border: #2a1f4a;
+  --border2: #1e1640;
+  --purple: #7c3aed;
+  --violet: #a855f7;
+  --pink: #ec4899;
+  --rose: #f43f5e;
+  --gold: #f59e0b;
+  --cream: #fdf4ff;
+  --text: #e2d9f3;
+  --muted: #6b5fa0;
+  --green: #10b981;
+  --red: #f43f5e;
+  --glow: rgba(124,58,237,0.3);
 }
 
-function showModal() {
-  const k = getKey();
-  if (k) document.getElementById('modal-key').value = k;
-  document.getElementById('api-modal').style.display = 'flex';
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  font-weight: 300;
 }
 
-function updateDot() {
-  const d = document.getElementById('status-dot');
-  if (getKey()) {
-    d.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px #10b981;animation:pulse 2s infinite;';
-  } else {
-    d.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#f43f5e;box-shadow:0 0 8px #f43f5e;';
-  }
+/* Ambient background */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -20%;
+  width: 70vw;
+  height: 70vw;
+  background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-const style = document.createElement('style');
-style.textContent = '@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}';
-document.head.appendChild(style);
-
-window.addEventListener('load', () => {
-  updateDot();
-  if (!getKey()) document.getElementById('api-modal').style.display = 'flex';
-});
-
-async function ai(prompt) {
-  const key = getKey();
-  if (!key) { showModal(); throw new Error('API Key missing'); }
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: SYS + '\n\n' + prompt }] }],
-      generationConfig: { maxOutputTokens: 1200, temperature: 0.85 }
-    })
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  return d.candidates?.[0]?.content?.parts?.[0]?.text || 'Kuch error aaya API response mein.';
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -30%;
+  right: -20%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
-function goTab(id, btn) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  btn.classList.add('active');
+/* API Key Modal */
+#api-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(6,3,15,0.92);
+  backdrop-filter: blur(12px);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
 }
 
-function load(id, on) { document.getElementById('l-' + id).classList.toggle('on', on); }
-
-function showResp(id, text) {
-  const el = document.getElementById('r-' + id);
-  el.textContent = text;
-  el.classList.add('on');
-  const cp = document.getElementById('cp-' + id);
-  if (cp) cp.classList.add('on');
+.modal-box {
+  background: linear-gradient(135deg, #110d24, #0d0820);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+  overflow: hidden;
 }
 
-async function analyzeAcc() {
-  const f = document.getElementById('i-followers').value;
-  const p = document.getElementById('i-posts').value;
-  if (!f || !p) { alert('Followers aur posts zaroor bharo!'); return; }
-  document.getElementById('v-followers').textContent = f;
-  document.getElementById('v-posts').textContent = p;
-  document.getElementById('v-likes').textContent = document.getElementById('i-likes').value || '—';
-  document.getElementById('v-views').textContent = document.getElementById('i-views').value || '—';
-  load('analyze', true);
-  document.getElementById('btn-analyze').disabled = true;
-  try {
-    const res = await ai(`Aanya Nirvaah ke account ka analysis karo:\n- Followers: ${f}\n- Posts: ${p}\n- Avg Likes: ${document.getElementById('i-likes').value||'N/A'}\n- Avg Views: ${document.getElementById('i-views').value||'N/A'}\n- Content: ${document.getElementById('i-content').value}\n- Frequency: ${document.getElementById('i-freq').value}\n- Challenge: ${document.getElementById('i-challenge').value||'None'}\n\nDe: 1) Account health score/10, 2) Kya achha hai, 3) Kya improve karo, 4) Top 3 priority actions`);
-    showResp('analyze', res);
-  } catch(e) { showResp('analyze', '❌ Error: ' + e.message); }
-  load('analyze', false);
-  document.getElementById('btn-analyze').disabled = false;
+.modal-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--violet), transparent);
 }
 
-async function genStrategy() {
-  load('strategy', true);
-  try {
-    const res = await ai(`Aanya ke liye 30-day Instagram growth strategy:\n- Goal: ${document.getElementById('i-goal').value}\n- Time: ${document.getElementById('i-time').value}\n- Tools: ${document.getElementById('i-tools').value}\n\nInclude: Week 1-2 plan, Week 3-4 plan, daily routine, metrics to track, brand deal timeline`);
-    showResp('strategy', res);
-  } catch(e) { showResp('strategy', '❌ Error: ' + e.message); }
-  load('strategy', false);
+.modal-glyph {
+  font-size: 40px;
+  text-align: center;
+  margin-bottom: 16px;
 }
 
-async function genCaption() {
-  const t = document.getElementById('i-topic').value;
-  if (!t) { alert('Topic batao!'); return; }
-  load('caption', true);
-  try {
-    const res = await ai(`Aanya ke liye Instagram caption:\n- Topic: ${t}\n- Mood: ${document.getElementById('i-mood').value}\n- Language: ${document.getElementById('i-lang').value}\n\nFormat:\nCAPTION:\n[2-3 lines, cute desi personality, 1-2 emojis, CTA at end]\n\nHASHTAGS:\n[8-10 relevant hashtags]`);
-    showResp('caption', res);
-  } catch(e) { showResp('caption', '❌ Error: ' + e.message); }
-  load('caption', false);
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--cream);
+  text-align: center;
+  margin-bottom: 8px;
 }
 
-async function genHashtags() {
-  const t = document.getElementById('i-topic').value || 'desi lifestyle virtual influencer';
-  load('hashtags', true);
-  try {
-    const res = await ai(`Aanya ke liye custom Instagram hashtags:\n- Niche: Desi virtual influencer, North Indian girl\n- Topic: ${t}\n\n3 groups mein do:\n1. 🔥 High reach (5 tags — 1M+ posts)\n2. 🎯 Medium reach (8 tags — 100K-1M)\n3. 💎 Niche specific (7 tags — under 100K)\n\nCopy-paste ready format.`);
-    showResp('hashtags', res);
-  } catch(e) { showResp('hashtags', '❌ Error: ' + e.message); }
-  load('hashtags', false);
+.modal-sub {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+  margin-bottom: 24px;
 }
 
-async function genIdeas() {
-  load('ideas', true);
-  try {
-    const res = await ai(`Aanya ke liye ${document.getElementById('i-count').value} Instagram Reel ideas:\n- Topic: ${document.getElementById('i-trend').value || 'general desi lifestyle'}\n- Style: ${document.getElementById('i-style').value}\n\nHar idea mein: 1) Concept, 2) Audio type, 3) Hook (first 2 sec), 4) Caption idea. Flow AI/Veo 3 se doable hona chahiye.`);
-    showResp('ideas', res);
-  } catch(e) { showResp('ideas', '❌ Error: ' + e.message); }
-  load('ideas', false);
+.modal-sub a { color: var(--violet); text-decoration: none; }
+
+.steps {
+  background: rgba(124,58,237,0.08);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 2;
+  color: var(--text);
 }
 
-async function genPrompt() {
-  const concept = document.getElementById('i-concept').value;
-  if (!concept) { alert('Scene/concept batao!'); return; }
-  load('prompt', true);
-  try {
-    const res = await ai(`Aanya Nirvaah ke liye ek ultra-detailed AI image generation prompt banao.
-
-Character description: Beautiful Indian girl, early 20s, natural look, small bindi on forehead, oxidized silver earrings, warm brown eyes, long black wavy hair, soft features, North Indian girl.
-
-Scene details:
-- Concept: ${concept}
-- Mood/Aesthetic: ${document.getElementById('i-paesthetic').value}
-- Outfit: ${document.getElementById('i-outfit').value}
-- Location: ${document.getElementById('i-location').value}
-- Style: ${document.getElementById('i-tool').value}
-- Extra: ${document.getElementById('i-extra').value || 'none'}
-
-Ek single, long, comma-separated prompt banao (around 250 characters max) jo:
-1. Character ko perfectly describe kare
-2. Scene, lighting, atmosphere detail mein ho
-3. Technical photography/art terms use kare
-4. Negative prompts bhi do alag se
-
-Format:
-PROMPT:
-[detailed prompt]
-
-NEGATIVE PROMPT:
-[negative prompt]`);
-    showResp('prompt', res);
-  } catch(e) { showResp('prompt', '❌ Error: ' + e.message); }
-  load('prompt', false);
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 20px 20px 0;
+  background: linear-gradient(180deg, var(--bg) 60%, transparent);
 }
 
-async function genCalendar() {
-  load('calendar', true);
-  try {
-    const res = await ai(`Aanya ke liye ek hafte ka Instagram content calendar:\n- Posts/week: ${document.getElementById('i-ppw').value}\n- Theme: ${document.getElementById('i-theme').value || 'General desi lifestyle'}\n- Tools: Flow AI + Veo 3 + Face Swap\n\nTable format mein: Din | Post Type | Content Idea | Best Time | Caption Hook\nIndian events/festivals bhi include karo agar relevant ho.`);
-    showResp('calendar', res);
-  } catch(e) { showResp('calendar', '❌ Error: ' + e.message); }
-  load('calendar', false);
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
 }
 
-function copyEl(id, btnId) {
-  const text = document.getElementById(id).textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById(btnId);
-    const orig = btn.textContent;
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => btn.textContent = orig, 2000);
-  });
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-function cpTag(el) {
-  navigator.clipboard.writeText(el.textContent).then(() => {
-    const orig = el.textContent;
-    el.textContent = '✅';
-    setTimeout(() => el.textContent = orig, 1500);
-  });
+.avatar-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
 }
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+.avatar-ring::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  animation: spin 4s linear infinite;
 }
-</script>
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.avatar-inner {
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.brand-text {}
+.brand-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--cream);
+  letter-spacing: 0.3px;
+  line-height: 1.1;
+}
+.brand-sub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.key-btn {
+  background: rgba(124,58,237,0.1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--violet);
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.key-btn:active { background: rgba(124,58,237,0.2); }
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Nav */
+.nav {
+  display: flex;
+  gap: 0;
+  padding: 0 20px 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 10;
+}
+.nav::-webkit-scrollbar { display: none; }
+
+.nav-item {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  position: relative;
+  border: none;
+  background: transparent;
+}
+
+.nav-icon {
+  font-size: 20px;
+  transition: transform 0.2s;
+}
+
+.nav-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.nav-item.active .nav-label { color: var(--violet); }
+.nav-item.active .nav-icon { transform: scale(1.15); }
+
+.nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--purple), var(--pink));
+  transition: width 0.3s;
+}
+
+.nav-item.active::after { width: 60%; }
+
+/* Sections */
+.section { display: none; padding: 0 16px 120px; animation: up 0.3s ease; position: relative; z-index: 1; }
+.section.active { display: block; }
+
+@keyframes up {
+  from { opacity:0; transform:translateY(12px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* Cards */
+.card {
+  background: linear-gradient(135deg, rgba(17,13,36,0.9), rgba(13,8,32,0.9));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168,85,247,0.4), transparent);
+}
+
+.card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--cream);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.2px;
+}
+
+.card-title span { font-size: 20px; }
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat-box {
+  background: rgba(124,58,237,0.06);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.stat-box:active { border-color: var(--purple); }
+
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--violet);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Inputs */
+.inp-group { margin-bottom: 14px; }
+
+.inp-label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+}
+
+input, select, textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--purple);
+  background: rgba(124,58,237,0.06);
+}
+
+select option { background: #110d24; }
+textarea { resize: none; min-height: 80px; line-height: 1.6; }
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+}
+
+.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Loading */
+.loading {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.loading.on { display: flex; }
+
+.dots { display: flex; gap: 5px; }
+.dots i {
+  display: block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--violet);
+  animation: dot 1.2s infinite;
+}
+.dots i:nth-child(2) { animation-delay: 0.2s; }
+.dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot {
+  0%,80%,100% { transform:scale(0.5); opacity:0.3; }
+  40% { transform:scale(1); opacity:1; }
+}
+
+/* AI Response */
+.ai-resp {
+  display: none;
+  background: rgba(124,58,237,0.05);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--violet);
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 14px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+  animation: up 0.3s ease;
+}
+.ai-resp.on { display: block; }
+
+/* Copy btn */
+.copy-btn {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--muted);
+  font-family: 'Jost', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn.on { display: inline-flex; }
+.copy-btn:active { border-color: var(--violet); color: var(--violet); }
+
+/* Tags */
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.tag {
+  padding: 7px 13px;
+  background: rgba(124,58,237,0.08);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--violet);
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+.tag:active { background: rgba(124,58,237,0.2); }
+
+/* Timeline */
+.tl-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.tl-item:last-child { border-bottom: none; }
+
+.tl-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(124,58,237,0.1);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tl-title { font-size: 14px; color: var(--cream); margin-bottom: 3px; }
+.tl-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* Divider */
+.divider { height: 1px; background: var(--border2); margin: 16px 0; }
+
+/* Section label */
+.sec-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+/* Prompt output special styling */
+.prompt-out {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text);
+  background: rgba(236,72,153,0.04);
+  border-left-color: var(--pink) !important;
+}
+</style>
+</head>
+<body>
+
+<div id="api-modal" style="display:none; position:fixed; inset:0; z-index:500; background:rgba(6,3,15,0.95); backdrop-filter:blur(16px); align-items:center; justify-content:center; padding:24px;">
+  <div class="modal-box">
+    <div class="modal-glyph">✦</div>
+    <div class="modal-title">Gemini Key Setup</div>
+    <div class="modal-sub">
+      Ye app Google Gemini AI se powered hai — bilkul <strong style="color:var(--green)">free</strong> hai!
+    </div>
+    <div class="steps">
+      1. <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--violet);">aistudio.google.com/apikey</a> pe jao<br>
+      2. <strong style="color:var(--cream)">"Create API Key"</strong> pe click karo<br>
+      3. Key copy karke neeche paste karo
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Gemini API Key</label>
+      <input type="password" id="modal-key" placeholder="AIza..." />
+    </div>
+    <div id="key-err" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none;">❌ Valid key paste karo (AIza... se shuru honi chahiye)</div>
+    <button class="btn-primary" onclick="saveKey()">✦ Save & Shuru Karo</button>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="avatar-ring">
+        <div class="avatar-inner">✨</div>
+      </div>
+      <div class="brand-text">
+        <div class="brand-name">Aanya Nirvaah</div>
+        <div class="brand-sub">AI Manager</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="key-btn" onclick="showModal()">🔑 Key</button>
+      <div class="live-dot" id="status-dot"></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-item active" onclick="goTab('analyze',this)">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Analyze</span>
+    </button>
+    <button class="nav-item" onclick="goTab('strategy',this)">
+      <span class="nav-icon">🎯</span>
+      <span class="nav-label">Strategy</span>
+    </button>
+    <button class="nav-item" onclick="goTab('caption',this)">
+      <span class="nav-icon">✍️</span>
+      <span class="nav-label">Caption</span>
+    </button>
+    <button class="nav-item" onclick="goTab('ideas',this)">
+      <span class="nav-icon">🎬</span>
+      <span class="nav-label">Reel Ideas</span>
+    </button>
+    <button class="nav-item" onclick="goTab('prompt',this)">
+      <span class="nav-icon">🖼️</span>
+      <span class="nav-label">AI Prompt</span>
+    </button>
+    <button class="nav-item" onclick="goTab('calendar',this)">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">Calendar</span>
+    </button>
+  </div>
+</div>
+
+<div id="tab-analyze" class="section active">
+  <div class="card">
+    <div class="card-title"><span>📊</span> Account Snapshot</div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="v-followers">—</div><div class="stat-label">Followers</div></div>
+      <div class="stat-box"><div class="stat-val" id="v-posts">—</div><div class="stat-label">Posts</div></div>
+      <div class="stat-box"><div class="stat-val" id="v-likes">—</div><div class="stat-label">Avg Likes</div></div>
+      <div class="stat-box"><div class="stat-val" id="v-views">—</div><div class="stat-label">Avg Views</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>📝</span> Stats Enter Karo</div>
+    <div class="inp-group"><label class="inp-label">Total Followers</label><input type="number" id="i-followers" placeholder="e.g. 120"/></div>
+    <div class="inp-group"><label class="inp-label">Total Posts / Reels</label><input type="number" id="i-posts" placeholder="e.g. 5"/></div>
+    <div class="inp-group"><label class="inp-label">Average Likes per Post</label><input type="number" id="i-likes" placeholder="e.g. 15"/></div>
+    <div class="inp-group"><label class="inp-label">Average Views per Reel</label><input type="number" id="i-views" placeholder="e.g. 300"/></div>
+    <div class="inp-group">
+      <label class="inp-label">Content Type</label>
+      <select id="i-content">
+        <option value="reels">Reels only</option>
+        <option value="photos">Photos only</option>
+        <option value="both">Reels + Photos dono</option>
+      </select>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Posting Frequency</label>
+      <select id="i-freq">
+        <option value="daily">Daily</option>
+        <option value="3-4/week">3-4 baar/week</option>
+        <option value="1-2/week">1-2 baar/week</option>
+        <option value="random">Random</option>
+      </select>
+    </div>
+    <div class="inp-group"><label class="inp-label">Biggest Challenge</label><textarea id="i-challenge" placeholder="e.g. Views nahi aa rahe, engagement low hai..."></textarea></div>
+    <button class="btn-primary" id="btn-analyze" onclick="analyzeAcc()">✦ AI Analysis Karo</button>
+    <div class="loading" id="l-analyze"><div class="dots"><i></i><i></i><i></i></div> Account analyze ho raha hai...</div>
+    <div class="ai-resp" id="r-analyze"></div>
+    <button class="copy-btn" id="cp-analyze" onclick="copyEl('r-analyze','cp-analyze')">📋 Copy</button>
+  </div>
+</div>
+
+<div id="tab-strategy" class="section">
+  <div class="card">
+    <div class="card-title"><span>🎯</span> Growth Strategy</div>
+    <div class="inp-group">
+      <label class="inp-label">Main Goal</label>
+      <select id="i-goal">
+        <option value="followers">Followers badhana</option>
+        <option value="views">Reel views badhana</option>
+        <option value="engagement">Engagement improve karna</option>
+        <option value="brand">Brand deals lena</option>
+        <option value="viral">Viral hona</option>
+      </select>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Daily Available Time</label>
+      <select id="i-time">
+        <option value="30min">30 minutes</option>
+        <option value="1hr">1 hour</option>
+        <option value="2hr">2 hours</option>
+        <option value="weekends">Weekends only</option>
+      </select>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Content Tools</label>
+      <select id="i-tools">
+        <option value="flow+veo">Flow AI + Veo 3</option>
+        <option value="flow">Flow AI only</option>
+        <option value="faceswap">Face Swap tools</option>
+        <option value="all">Sab tools</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="genStrategy()">✦ Strategy Banao</button>
+    <div class="loading" id="l-strategy"><div class="dots"><i></i><i></i><i></i></div> Strategy ban rahi hai...</div>
+    <div class="ai-resp" id="r-strategy"></div>
+    <button class="copy-btn" id="cp-strategy" onclick="copyEl('r-strategy','cp-strategy')">📋 Copy</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>⏰</span> Best Posting Times</div>
+    <div class="tl-item">
+      <div class="tl-dot">🌅</div>
+      <div><div class="tl-title">Morning — 11am to 1pm</div><div class="tl-sub">High engagement • Tue–Fri best</div></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">🌆</div>
+      <div><div class="tl-title">Evening — 6pm to 8pm</div><div class="tl-sub">Peak scrolling time • Sab din</div></div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot">🌙</div>
+      <div><div class="tl-title">Raat — Avoid karo</div><div class="tl-sub">Low reach • Algorithm boost nahi milta</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-caption" class="section">
+  <div class="card">
+    <div class="card-title"><span>✍️</span> Caption Generator</div>
+    <div class="inp-group"><label class="inp-label">Post Topic</label><textarea id="i-topic" placeholder="e.g. Chai ke saath morning, desi outfit, rooftop sunset..."></textarea></div>
+    <div class="inp-group">
+      <label class="inp-label">Mood / Vibe</label>
+      <select id="i-mood">
+        <option value="cute">Cute & Soft 🌸</option>
+        <option value="motivational">Motivational ✨</option>
+        <option value="relatable">Relatable & Funny 😄</option>
+        <option value="aesthetic">Aesthetic & Dreamy 🌙</option>
+        <option value="desi">Pure Desi 🪔</option>
+      </select>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Language</label>
+      <select id="i-lang">
+        <option value="hinglish">Hinglish (Hindi + English)</option>
+        <option value="hindi">Pure Hindi</option>
+        <option value="english">English</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="genCaption()">✦ Caption Banao</button>
+    <div class="loading" id="l-caption"><div class="dots"><i></i><i></i><i></i></div> Aanya ki awaaz mein likh raha hoon...</div>
+    <div class="ai-resp" id="r-caption"></div>
+    <button class="copy-btn" id="cp-caption" onclick="copyEl('r-caption','cp-caption')">📋 Copy Caption</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>#️⃣</span> Quick Hashtag Sets</div>
+    <div class="sec-label" style="margin-bottom:10px;">Tap to copy</div>
+
+    <div class="sec-label">🌸 Desi Aesthetic</div>
+    <div class="tags">
+      <span class="tag" onclick="cpTag(this)">#desivibes</span>
+      <span class="tag" onclick="cpTag(this)">#indiangirl</span>
+      <span class="tag" onclick="cpTag(this)">#desiaesthetic</span>
+      <span class="tag" onclick="cpTag(this)">#northindian</span>
+      <span class="tag" onclick="cpTag(this)">#indianfashion</span>
