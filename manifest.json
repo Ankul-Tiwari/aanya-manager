@@ -4,8 +4,8 @@
   "description": "AI powered Instagram manager for Aanya Nirvaah virtual influencer",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0600",
-  "theme_color": "#c9843a",
+  "background_color": "#06030f",
+  "theme_color": "#080412",
   "orientation": "portrait",
   "icons": [
     {
