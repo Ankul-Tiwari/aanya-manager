@@ -444,6 +444,35 @@
 </head>
 <body>
 
+<!-- API Key Modal -->
+<div id="api-modal" style="
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(6px);
+  align-items:center; justify-content:center; padding:24px;
+">
+  <div style="
+    background:var(--card); border:1px solid var(--border);
+    border-radius:20px; padding:24px; width:100%; max-width:380px;
+  ">
+    <div style="font-family:'Playfair Display',serif; font-size:20px; color:var(--gold-light); margin-bottom:8px;">🔑 API Key Setup</div>
+    <div style="font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.6;">
+      App kaam karne ke liye Anthropic API key chahiye.<br>
+      <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold);">console.anthropic.com</a> se free key lo.
+    </div>
+    <div class="input-group">
+      <label class="input-label">Apni API Key Paste Karo</label>
+      <input type="password" id="modal-key-input" placeholder="sk-ant-..." style="font-size:13px;" />
+    </div>
+    <div style="font-size:11px; color:var(--muted); margin-bottom:16px;">
+      🔒 Key sirf tumhare browser mein save hogi, kahin nahi jayegi.
+    </div>
+    <button class="btn-primary" onclick="saveApiKey()">✅ Save & Shuru Karo</button>
+    <div id="key-error" style="color:var(--red); font-size:12px; margin-top:10px; display:none;">
+      ❌ Key galat lag rahi hai. "sk-ant-" se shuru honi chahiye.
+    </div>
+  </div>
+</div>
+
 <!-- Header -->
 <div class="header">
   <div class="header-left">
@@ -455,7 +484,14 @@
       <div class="header-sub">AI Account Manager</div>
     </div>
   </div>
-  <div class="status-dot"></div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <button onclick="showKeyModal()" style="
+      background:transparent; border:1px solid var(--border);
+      border-radius:8px; color:var(--muted); font-size:11px;
+      padding:6px 10px; cursor:pointer;
+    ">🔑 Key</button>
+    <div class="status-dot" id="status-dot" style="background:var(--red); box-shadow: 0 0 8px var(--red);"></div>
+  </div>
 </div>
 
 <!-- Nav -->
@@ -824,10 +860,61 @@ Jab bhi response de:
 - Instagram algorithm ke latest best practices follow kar
 - Concise aur clear reh`;
 
+function getApiKey() {
+  return localStorage.getItem('aanya_api_key') || '';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('modal-key-input').value.trim();
+  if (!key.startsWith('sk-ant-') && !key.startsWith('sk-')) {
+    document.getElementById('key-error').style.display = 'block';
+    return;
+  }
+  localStorage.setItem('aanya_api_key', key);
+  document.getElementById('api-modal').style.display = 'none';
+  document.getElementById('key-error').style.display = 'none';
+  updateStatusDot();
+  alert('API Key save ho gayi! Ab sare tools kaam karenge.');
+}
+
+function showKeyModal() {
+  const existing = getApiKey();
+  if (existing) document.getElementById('modal-key-input').value = existing;
+  document.getElementById('api-modal').style.display = 'flex';
+}
+
+function updateStatusDot() {
+  const dot = document.getElementById('status-dot');
+  if (getApiKey()) {
+    dot.style.background = 'var(--green)';
+    dot.style.boxShadow = '0 0 8px var(--green)';
+  } else {
+    dot.style.background = 'var(--red)';
+    dot.style.boxShadow = '0 0 8px var(--red)';
+  }
+}
+
+window.addEventListener('load', () => {
+  updateStatusDot();
+  if (!getApiKey()) {
+    document.getElementById('api-modal').style.display = 'flex';
+  }
+});
+
 async function callClaude(userMessage) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showKeyModal();
+    throw new Error('API key nahi hai');
+  }
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1000,
@@ -836,6 +923,7 @@ async function callClaude(userMessage) {
     })
   });
   const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
   return data.content?.[0]?.text || "Kuch error aaya. Dobara try karo.";
 }
 
@@ -1079,7 +1167,6 @@ function copyTag(el) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
-    <!-- v2 -->
   });
 }
 </script>
